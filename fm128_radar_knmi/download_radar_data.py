@@ -81,6 +81,12 @@ class download_radar_data:
     We don't want to redownload the tar file from ftp if the
     file is already there
     '''
+    # begin python2 compatibility
+    try:
+      FileNotFoundError
+    except NameError:
+      FileNotFoundError = IOError
+    # end python2 compatibility
     try:
       if not tarfile.is_tarfile(self.outputfile):
         # file exists but is not a valid tar file
@@ -89,11 +95,9 @@ class download_radar_data:
         return False
       else:
         return True
-      except OSError as e:
-          if e.errno == errno.ENOENT:
-            return False
-          else:
-              raise
+    except FileNotFoundError:
+        # file does not exist
+        return False
 
 
 if __name__=="__main__":
