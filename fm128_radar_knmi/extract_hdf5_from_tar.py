@@ -4,16 +4,20 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
-#from fm128_radar_knmi import download_radar_data
 import datetime
 import tarfile
+import os
 
 
 class extract_hdf5_from_tar:
-  def __init__(self, tar_archive, dt):
+  def __init__(self, tar_archive, workdir, dt):
     '''
     Extract hd5 file from tar archive
+      - tar_archive: full path of the tar archive
+      - workdir: location where to extract the member to
+      - dt: datetime object of the member to be extracted
     '''
+    self.workdir = workdir
     self.tar_archive = tar_archive
     self.dt = dt
     self.check_tarfile()
@@ -54,8 +58,10 @@ class extract_hdf5_from_tar:
     tf_names = tf.getnames()  # list of files in tar archive
     # check if file is in the tar archive
     if self.filename in tf_names:
-      tf.extract(self.filename)  # extract single file from tar archive
+      # extract single file from tar archive
+      tf.extract(self.filename, path=self.workdir)
     tf.close()  # close tar file
+    self.outputfile = os.path.join(self.workdir, self.filename)
 
 if __name__=="__main__":
   dt = datetime.datetime(2014,1,1)

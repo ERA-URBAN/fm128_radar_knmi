@@ -7,11 +7,11 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 import datetime
 import numpy
 import h5py
-import parser
 import datetime
 from netCDF4 import Dataset
 import netcdftime
 import time
+import asteval
 
 def initialize_nans(shape):
   '''
@@ -73,8 +73,8 @@ class convert_to_netcdf:
       cal_sc1 = scan1.get('calibration')
       str = numpy.array_str(cal_sc1.attrs.get(
         'calibration_Z_formulas')).strip("['']").split('=')
-      code = parser.expr(str[1]).compile()
-      Z_sc1 = eval(code)
+      # evaluate expression in a "safe" manner
+      Z_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
       for i in  range(0, len(self.r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]

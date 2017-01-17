@@ -7,22 +7,25 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 from ftplib import FTP
 import os
 import datetime
-
+import tarfile
 
 class download_radar_data:
-  def __init__(self, dt, outputname='radar.tar'):
+  def __init__(self, dt, outputdir):
     '''
     Download radar data from KNMI ftp
     Each tar file contains one day of hdf5 files with a frequency of 15 minutes
+      - dt: datetime object of day to download the tar archive
+            for
+      - outputdir: directory where outputfile should be saved
     '''
     self.dt = dt  # datetime object
-    self.outputname = outputname
+    self.outputdir = outputdir
     self.connect_to_ftp()
     self.change_to_download_directory()
     self.define_filename()
-    self.open_output_file()
-    self.download_file()
-    self.close_output_file()
+    self.define_outputfile()
+    if not self.check_file_exists():
+      self.download_file()
 
   def connect_to_ftp(self):
     '''
@@ -56,19 +59,39 @@ class download_radar_data:
                      + ext)
 
   def download_file(self):
+    '''
+    Download the tar file from ftp server
+    '''
+    # Open output file for writing
+    self.file = open(self.outputfile, 'wb')
+    # retrieve file
     self.ftp.retrbinary('RETR %s' % self.filename, self.file.write)
-
-  def open_output_file(self):
-    '''
-    open output file for writing
-    '''
-    self.file = open(self.outputname, 'wb')
-
-  def close_output_file(self):
-    '''
-    close the output file
-    '''
+    # close the output file
     self.file.close()
+
+  def define_outputfile(self):
+    '''
+    Define name and location of the output file
+    '''
+    self.outputfile = os.path.join(self.outputdir, self.filename)
+
+  def check_file_exists(self):
+    '''
+    Check if outputfile exists and is a tar file
+    We don't want to redownload the tar file from ftp if the
+    file is already there
+    '''
+    try:
+      if not tarfile.is_tarfile(self.outputfile):
+        # file exists but is not a valid tar file
+        os.remove(self.outputfile, dir_fd=None)
+        # remove output file
+        return False
+      else:
+        return True
+    except FileNotFoundError:
+        # file does not exist
+        return False
 
 
 if __name__=="__main__":

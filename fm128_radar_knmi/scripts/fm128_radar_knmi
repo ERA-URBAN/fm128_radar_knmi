@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+'''
+description:    Download and convert KNMI radar data to WRFDA fm128_radar ascii
+license:        APACHE 2.0
+author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
+'''
+
+import configargparse
+import os
+import sys
+from dateutil import parser
+from fm128_radar_knmi.download_radar_data import *
+from fm128_radar_knmi.extract_hdf5_from_tar import *
+from fm128_radar_knmi.convert_to_netcdf import *
+from fm128_radar_knmi.convert_to_ascii import *
+
+def cli_parser():
+    '''
+    parse command line arguments:
+    '''
+    cfile = os.path.join(sys.prefix, 'etc', 'fm128_radar_knmi', 'radar.config')
+    parser = configargparse.ArgumentParser(default_config_files=[cfile],
+        description='Download and convert KNMI radar data to WRFDA ' +
+        'fm128_radar ascii')
+    parser.add('-c', '--my-config', required=False, is_config_file=True,
+               help='config file path')
+    parser.add('--DOWNLOAD_DIR', required=True,
+               help='Download directory tar files', env_var='DOWNLOAD_DIR')
+    parser.add('--OUTPUT_DIR', help='Output directory ascii files',
+               env_var='OUTPUT_DIR', required=True)
+    parser.add('--TMP_DIR',
+               help='Directory where intermediate files are saved',
+               env_var='TMP_DIR', required=False)
+    parser.add('--remove_intermediate', default=False, type=bool,
+               help='Remove intermediate files')
+    parser.add('datetime', metavar='datetime', type=str,
+               help='Datetime string %Y%m%d%H%M')
+    results = parser.parse_args()
+    return results
+
+
+if __name__ == "__main__":
+    results = cli_parser()
+    if not results.TMP_DIR:
+      # default TMP_DIR to DOWNLOAD_DIR
+      results.TMP_DIR = results.DOWNLOAD_DIR
+    dt = parser.parse(results.datetime)
+    radar_data = download_radar_data(dt, results.DOWNLOAD_DIR)
+    h5_file = extract_hdf5_from_tar(radar_data.outputfile,
+                                    results.TMP_DIR, dt)
+    nc_file = convert_to_netcdf(h5_file.outputfile, dt,
+                                outfile=os.path.join(
+                                  results.TMP_DIR, 'fm128_radar_' +
+                                  datetime.datetime.strftime(dt, '%Y%m%d%H%M')
+                                  + '.nc'))
+    ascii_name = os.path.join(results.OUTPUT_DIR, 'ob.radar')
+    convert_to_ascii(nc_file.outfile, ascii_name)
+    if results.remove_intermediate:
+      # remove intermediate files
+      [os.remove(fl) for fl in [h5_file.outputfile, nc_file.outfile]]
