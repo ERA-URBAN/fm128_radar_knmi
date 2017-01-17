@@ -89,9 +89,11 @@ class download_radar_data:
         return False
       else:
         return True
-    except FileNotFoundError:
-        # file does not exist
-        return False
+      except OSError as e:
+          if e.errno == errno.ENOENT:
+            return False
+          else:
+              raise
 
 
 if __name__=="__main__":
