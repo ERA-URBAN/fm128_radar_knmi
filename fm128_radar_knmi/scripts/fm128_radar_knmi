@@ -30,12 +30,13 @@ def cli_parser():
     parser.add('--OUTPUT_DIR', help='Output directory ascii files',
                env_var='OUTPUT_DIR', required=True)
     parser.add('--TMP_DIR',
-               help='Directory where intermediate files are saved',
+               help='Directory where intermediate files are saved, ' +
+               'defaults to DOWNLOAD_DIR',
                env_var='TMP_DIR', required=False)
     parser.add('--remove_intermediate', default=False, type=bool,
                help='Remove intermediate files')
     parser.add('datetime', metavar='datetime', type=str,
-               help='Datetime string %Y%m%d%H%M')
+               help='Datetime string "%%Y%%m%%d%%H%%M"')
     results = parser.parse_args()
     return results
 
