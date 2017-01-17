@@ -52,7 +52,7 @@ class convert_to_netcdf:
     self.degr = numpy.arange(0,360, 1)
     self.r = numpy.arange(0, 240, 1)*1000  # convert from KM to M
     # TODO: check if we can speed this up/simplify
-    for x in range(len(self.scans)): 
+    for x in range(len(self.scans)):
       for i in  range(0, len(self.r)):
         for j in self.degr:
           dx = self.r[i]*numpy.cos(self.degr[j]*(numpy.pi/180))
@@ -75,6 +75,8 @@ class convert_to_netcdf:
         'calibration_Z_formulas')).strip("['']").split('=')
       # evaluate expression in a "safe" manner
       Z_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
+      # make sure we don't have negative values
+      Z_sc1[Z_sc1<0] = 0
       for i in  range(0, len(self.r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
@@ -113,7 +115,6 @@ class convert_to_netcdf:
     timevar.calendar = 'gregorian'
     timevar.standard_name = 'time'
     timevar.long_name = 'time in UTC'
-    #import pdb; pdb.set_trace()
     data3.units = 'meters'
     data.units = 'dBZ'
     data1.units = 'degrees_east'

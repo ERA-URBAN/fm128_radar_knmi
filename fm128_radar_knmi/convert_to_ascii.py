@@ -41,11 +41,11 @@ class convert_to_ascii:
     try:
       self.rf_qc = ncfile.variables['reflectivity_qc'][0,:]
     except KeyError:
-      self.rf_qc = -88 * numpy.ones(numpy.shape(self.rf))
+      self.rf_qc = numpy.zeros(numpy.shape(self.rf))
     try:
       self.rf_err = ncfile.variables['reflectivity_err'][0,:]
     except KeyError:
-      self.rf_err = -888888 * numpy.ones(numpy.shape(self.rf))
+      self.rf_err = 0.1 * self.rf
     # radial velocity
     try:
       self.rv = ncfile.variables['radial_velocity'][0,:]
