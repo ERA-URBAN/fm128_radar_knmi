@@ -13,7 +13,7 @@ def conf_path(name):
   return conf_path
 
 setup(
-    name = "fm128-radar-knmi",
+    name = "fm128_radar_knmi",
     version = "0.0.1",
     author = "Ronald van Haren",
     author_email = "r.vanharen@esciencecenter.nl",
