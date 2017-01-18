@@ -20,11 +20,11 @@ class download_radar_data:
     '''
     self.dt = dt  # datetime object
     self.outputdir = outputdir
-    self.connect_to_ftp()
-    self.change_to_download_directory()
     self.define_filename()
     self.define_outputfile()
     if not self.check_file_exists():
+      self.connect_to_ftp()
+      self.change_to_download_directory()
       self.download_file()
 
   def connect_to_ftp(self):
