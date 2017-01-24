@@ -75,8 +75,8 @@ class convert_to_netcdf:
         'calibration_Z_formulas')).strip("['']").split('=')
       # evaluate expression in a "safe" manner
       Z_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
-      # make sure we don't have negative values
-      Z_sc1[Z_sc1<0] = 0
+      # set negative values equal to netcdf fill_value
+      Z_sc1[Z_sc1<0] = -999
       for i in  range(0, len(self.r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
@@ -96,7 +96,7 @@ class convert_to_netcdf:
     # create variables
     data = ncfile.createVariable('reflectivity','f4',
                                  ('time','angles','degrees','distance'),
-                                 zlib=True)
+                                 zlib=True, fill_value=-999)
     data1 = ncfile.createVariable('latitude', 'f4', ('degrees','distance'),
                                   zlib=True)
     data2 = ncfile.createVariable('longitude', 'f4', ('degrees','distance'),
