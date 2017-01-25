@@ -9,7 +9,7 @@ import numpy
 import h5py
 import datetime
 from netCDF4 import Dataset
-import netcdftime
+from netCDF4 import date2num
 import time
 import asteval
 
@@ -107,9 +107,8 @@ class convert_to_netcdf:
     timevar = ncfile.createVariable('time', 'f4', ('time',),
                                     zlib=True)
     # time axis UTC
-    timeaxis = netcdftime.utime('minutes since 2010-01-01 00:00:00',
-                                calendar='gregorian')
-    dt = timeaxis.date2num(self.dt)
+    dt = date2num(dt, calendar='gregorian',
+                  units='minutes since 2010-01-01 00:00:00')
     # define attributes
     timevar.units = 'minutes since 2010-01-01 00:00:00'
     timevar.calendar = 'gregorian'
