@@ -12,6 +12,8 @@ from netCDF4 import Dataset
 from netCDF4 import date2num
 import time
 import asteval
+import time
+
 
 def initialize_nans(shape):
   '''
@@ -46,22 +48,18 @@ class convert_to_netcdf:
     Calculate reflectivity for each point
     '''
     self.ZZ_sc1 = initialize_nans([1, len(self.angles), 360, 240])
-    self.lat = initialize_nans([360, 240])
-    self.lon = initialize_nans([360, 240])
-    self.z = initialize_nans([len(self.angles), 360, 240])
     self.degr = numpy.arange(0,360, 1)
     self.r = numpy.arange(0, 240, 1)*1000  # convert from KM to M
-    # TODO: check if we can speed this up/simplify
-    for x in range(len(self.scans)):
-      for i in  range(0, len(self.r)):
-        for j in self.degr:
-          dx = self.r[i]*numpy.cos(self.degr[j]*(numpy.pi/180))
-          dy = self.r[i]*numpy.sin(self.degr[j]*(numpy.pi/180))
-          self.lat[j,i] = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
-          self.lon[j,i] = self.LON_bilt + (180/numpy.pi)*(dx/self.r_earth)/numpy.cos(
-            self.LAT_bilt*numpy.pi/180)
-          self.z[x,j,i] = self.r[i]*numpy.sin(self.angles[x]*numpy.pi/180)
-
+    dx = (numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[1])
+    self.lon = (self.LON_bilt + (180/numpy.pi)*(dx/self.r_earth)/numpy.cos(
+      self.LAT_bilt*numpy.pi/180))
+    dy = (numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[1])
+    self.lat = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
+    meshgr = (numpy.meshgrid(numpy.ones(len(self.degr)),
+                        numpy.sin(numpy.deg2rad(self.angles)), self.r))
+    self.z = meshgr[0] * meshgr[1] * meshgr[2]
     try:
       h5file = h5py.File(self.filename,'r')
     except Exception:
@@ -107,7 +105,7 @@ class convert_to_netcdf:
     timevar = ncfile.createVariable('time', 'f4', ('time',),
                                     zlib=True)
     # time axis UTC
-    dt = date2num(dt, calendar='gregorian',
+    dt = date2num(self.dt, calendar='gregorian',
                   units='minutes since 2010-01-01 00:00:00')
     # define attributes
     timevar.units = 'minutes since 2010-01-01 00:00:00'
