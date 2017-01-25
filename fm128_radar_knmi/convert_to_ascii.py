@@ -5,9 +5,9 @@ author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
 '''
 
 from netCDF4 import Dataset
+from netCDF4 import num2date
 import datetime
 import numpy
-import netcdftime
 from fm128_radar.write_fm128_radar import *
 
 
@@ -70,8 +70,8 @@ class convert_to_ascii:
     self.elv0 = float(ncfile.radar_height)
     self.radar_name = ncfile.radar_name
     # convert integer time to correct string
-    tmp_time = netcdftime.utime(time_in.units, calendar=time_in.calendar)
-    self.time = tmp_time.num2date(time_in[0])
+    self.time = num2date(time_in[0], calendar=time_in.calendar,
+                         units=time_in.units)
 
   def write_ascii(self):
     '''
