@@ -23,12 +23,13 @@ python-dateutil
 ```
 usage: fm128_radar_knmi [-h] [-c MY_CONFIG] --DOWNLOAD_DIR DOWNLOAD_DIR
                         --OUTPUT_DIR OUTPUT_DIR [--TMP_DIR TMP_DIR]
+                        [--pdry PDRY]
                         [--remove_intermediate REMOVE_INTERMEDIATE]
                         datetime
 
 Download and convert KNMI radar data to WRFDA fm128_radar ascii Args that
 start with '--' (eg. --DOWNLOAD_DIR) can also be set in a config file
-($INSTALL_DIR/etc/fm128_radar_knmi/radar.config or specified via -c).
+(/data/github/urban/etc/fm128_radar_knmi/radar.config or specified via -c).
 Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for details,
 see syntax at https://goo.gl/R74nmi). If an arg is specified in more than one
 place, then commandline values override environment variables which override
@@ -44,10 +45,10 @@ optional arguments:
   --DOWNLOAD_DIR DOWNLOAD_DIR
                         Download directory tar files [env var: DOWNLOAD_DIR]
   --OUTPUT_DIR OUTPUT_DIR
-                        Output directory of ob.radar file [env var: OUTPUT_DIR]
+                        Output directory ascii files [env var: OUTPUT_DIR]
   --TMP_DIR TMP_DIR     Directory where intermediate files are saved, defaults
                         to DOWNLOAD_DIR [env var: TMP_DIR]
+  --pdry PDRY           approximate percentage of dry measurements to use
   --remove_intermediate REMOVE_INTERMEDIATE
                         Remove intermediate files
 
-```
