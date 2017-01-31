@@ -36,6 +36,7 @@ class convert_to_netcdf:
   def define_constants(self):
     self.LAT_bilt = 52.10168
     self.LON_bilt = 5.17834
+    self.height_bilt = 44.
     self.r_earth = 6378137.
     self.angles = [0.3, 0.4, 0.8, 1.1, 2.0, 3.0, 4.5, 6.0, 8.0, 10.0, 12.0,
                    15.0, 20.0,  25.0 ]
@@ -59,7 +60,7 @@ class convert_to_netcdf:
     self.lat = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
     meshgr = (numpy.meshgrid(numpy.ones(len(self.degr)),
                         numpy.sin(numpy.deg2rad(self.angles)), self.r))
-    self.z = meshgr[0] * meshgr[1] * meshgr[2]
+    self.z = self.height_bilt + (meshgr[0] * meshgr[1] * meshgr[2])
     try:
       h5file = h5py.File(self.filename,'r')
     except Exception:
@@ -130,7 +131,7 @@ class convert_to_netcdf:
     ncfile.radar_name = 'deBilt'
     ncfile.radar_longitude = '5.17834'
     ncfile.radar_latitude = '52.10168'
-    ncfile.radar_height = '44'
+    ncfile.radar_height = self.height_bilt
     ncfile.radar_height_units = 'meters'
     # close output file
     ncfile.close()
