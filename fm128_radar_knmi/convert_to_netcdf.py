@@ -78,7 +78,7 @@ class convert_to_netcdf:
       # create random mask with approx self.pdry% of data points
       if self.pdry:
         if self.pdry<=100:
-          max_int = numpy.int(numpy.round((1/(self.pdry/100))))
+          max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
         else:
           max_int = 1
         mask = numpy.random.randint(0, max_int,
