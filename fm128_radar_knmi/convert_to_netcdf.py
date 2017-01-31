@@ -89,22 +89,22 @@ class convert_to_netcdf:
     ncfile = Dataset(self.outfile, 'w')
     # create dimensions
     ncfile.createDimension('time', ntime)
-    ncfile.createDimension('angles', nangles)
-    ncfile.createDimension('degrees', ndegr)
+    ncfile.createDimension('angle', nangles)
+    ncfile.createDimension('degree', ndegr)
     ncfile.createDimension('distance', ndist)
     # create variables
     data = ncfile.createVariable('reflectivity','f4',
-                                 ('time','angles','degrees','distance'),
+                                 ('time','angle','degree','distance'),
                                  zlib=True, fill_value=-999)
-    data1 = ncfile.createVariable('latitude', 'f4', ('degrees','distance'),
+    data1 = ncfile.createVariable('latitude', 'f4', ('degree','distance'),
                                   zlib=True)
-    data2 = ncfile.createVariable('longitude', 'f4', ('degrees','distance'),
+    data2 = ncfile.createVariable('longitude', 'f4', ('degree','distance'),
                                   zlib=True)
     data3 = ncfile.createVariable('altitude', 'f4',
-                                  ('angles','degrees','distance'),
-                                  zlib=True)
-    timevar = ncfile.createVariable('time', 'f4', ('time',),
-                                    zlib=True)
+                                  ('angle','degree','distance'), zlib=True)
+    data4 = ncfile.createVariable('angle', 'f4', ('angle',), zlib=True)
+    data5 = ncfile.createVariable('degree', 'f4', ('degree',), zlib=True)
+    timevar = ncfile.createVariable('time', 'f4', ('time',), zlib=True)
     # time axis UTC
     dt = date2num(self.dt, calendar='gregorian',
                   units='minutes since 2010-01-01 00:00:00')
@@ -115,15 +115,21 @@ class convert_to_netcdf:
     timevar.long_name = 'time in UTC'
     data3.units = 'meters'
     data.units = 'dBZ'
-    data1.units = 'degrees_east'
-    data1.standard_name = 'Longitude'
-    data2.units = 'degrees_north'
-    data2.standard_name = 'Latitude'
+    data1.units = 'degree_east'
+    data1.standard_name = 'longitude'
+    data2.units = 'degree_north'
+    data2.standard_name = 'latitude'
+    data4.unites = 'degree'
+    data4.description = 'angle with respect to the horizontal'
+    data5.unites = 'degree'
+    data5.description = 'angle with respect to viewing direction'
     # write data
     data[:] = self.ZZ_sc1
     data1[:] = self.lat
     data2[:] = self.lon
     data3[:] = self.z
+    data4[:] = self.angles
+    data5[:] = self.degr
     timevar[:] = dt
     # Add global attributes
     ncfile.description = 'KNMI radar data converted with fm128_radar_knmi'
