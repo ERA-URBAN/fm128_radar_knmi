@@ -45,17 +45,19 @@ if __name__ == "__main__":
     results = cli_parser()
     if not results.TMP_DIR:
       # default TMP_DIR to DOWNLOAD_DIR
-      results.TMP_DIR = results.DOWNLOAD_DIR
+      results.TMP_DIR = os.path.expanduser(results.DOWNLOAD_DIR)
     dt = parser.parse(results.datetime)
-    radar_data = download_radar_data(dt, results.DOWNLOAD_DIR)
+    radar_data = download_radar_data(dt,
+                                     os.path.expanduser(results.DOWNLOAD_DIR))
     h5_file = extract_hdf5_from_tar(radar_data.outputfile,
-                                    results.TMP_DIR, dt)
+                                    os.path.expanduser(results.TMP_DIR), dt)
     nc_file = convert_to_netcdf(h5_file.outputfile, dt,
                                 outfile=os.path.join(
-                                  results.TMP_DIR, 'fm128_radar_' +
+                                  os.path.expanduser(results.TMP_DIR), 'fm128_radar_' +
                                   datetime.datetime.strftime(dt, '%Y%m%d%H%M')
                                   + '.nc'))
-    ascii_name = os.path.join(results.OUTPUT_DIR, 'ob.radar')
+    ascii_name = os.path.join(os.path.expanduser(results.OUTPUT_DIR),
+                              'ob.radar')
     convert_to_ascii(nc_file.outfile, ascii_name)
     if results.remove_intermediate:
       # remove intermediate files
