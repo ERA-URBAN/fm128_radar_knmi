@@ -33,6 +33,8 @@ def cli_parser():
                help='Directory where intermediate files are saved, ' +
                'defaults to DOWNLOAD_DIR',
                env_var='TMP_DIR', required=False)
+    parser.add('--pdry', default=100, type=int,
+               help='approximate percentage of dry measurements to use')
     parser.add('--remove_intermediate', default=False, type=bool,
                help='Remove intermediate files')
     parser.add('datetime', metavar='datetime', type=str,
@@ -51,7 +53,7 @@ if __name__ == "__main__":
                                      os.path.expanduser(results.DOWNLOAD_DIR))
     h5_file = extract_hdf5_from_tar(radar_data.outputfile,
                                     os.path.expanduser(results.TMP_DIR), dt)
-    nc_file = convert_to_netcdf(h5_file.outputfile, dt,
+    nc_file = convert_to_netcdf(h5_file.outputfile, dt, results.pdry,
                                 outfile=os.path.join(
                                   os.path.expanduser(results.TMP_DIR), 'fm128_radar_' +
                                   datetime.datetime.strftime(dt, '%Y%m%d%H%M')

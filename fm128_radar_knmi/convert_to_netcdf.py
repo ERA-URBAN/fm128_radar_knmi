@@ -25,10 +25,11 @@ def initialize_nans(shape):
 
 
 class convert_to_netcdf:
-  def __init__(self, filename, dt, outfile='radar.nc'):
+  def __init__(self, filename, dt, pdry, outfile='radar.nc'):
     self.filename = filename
     self.outfile = outfile
     self.dt = dt
+    self.pdry = pdry
     self.define_constants()
     self.calculate_reflectivity()
     self.create_netcdf()
@@ -51,12 +52,12 @@ class convert_to_netcdf:
     self.ZZ_sc1 = initialize_nans([1, len(self.angles), 360, 240])
     self.degr = numpy.arange(0,360, 1)
     self.r = numpy.arange(0, 240, 1)*1000  # convert from KM to M
-    dx = (numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[0] *
-          numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[1])
+    dx = (numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[1])
     self.lon = (self.LON_bilt + (180/numpy.pi)*(dx/self.r_earth)/numpy.cos(
       self.LAT_bilt*numpy.pi/180))
-    dy = (numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[0] *
-          numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[1])
+    dy = (numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[1])
     self.lat = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
     meshgr = (numpy.meshgrid(numpy.ones(len(self.degr)),
                         numpy.sin(numpy.deg2rad(self.angles)), self.r))
@@ -74,8 +75,16 @@ class convert_to_netcdf:
         'calibration_Z_formulas')).strip("['']").split('=')
       # evaluate expression in a "safe" manner
       Z_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
-      # set negative values equal to netcdf fill_value
-      Z_sc1[Z_sc1<0] = -999
+      # create random mask with approx self.pdry% of data points
+      if self.pdry:
+        if self.pdry<=100:
+          max_int = numpy.int(numpy.round((1/(self.pdry/100))))
+        else:
+          max_int = 1
+        mask = numpy.random.randint(0, max_int,
+                                    size=Z_sc1.shape).astype(numpy.bool)
+        # Set only points in mask that are <0 to NaN (corresponds to dry cases)
+        Z_sc1[(mask) & (Z_sc1<0)] = -999
       for i in  range(0, len(self.r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
@@ -89,7 +98,7 @@ class convert_to_netcdf:
     ncfile = Dataset(self.outfile, 'w')
     # create dimensions
     ncfile.createDimension('time', ntime)
-    ncfile.createDimension('angle', nangles)
+    ncfile.createDimension('angle', nangles-1)
     ncfile.createDimension('degree', ndegr)
     ncfile.createDimension('distance', ndist)
     # create variables
@@ -124,11 +133,11 @@ class convert_to_netcdf:
     data5.unites = 'degree'
     data5.description = 'angle with respect to viewing direction'
     # write data
-    data[:] = self.ZZ_sc1
+    data[:] = self.ZZ_sc1[0,1:,:]
     data1[:] = self.lat
     data2[:] = self.lon
-    data3[:] = self.z
-    data4[:] = self.angles
+    data3[:] = self.z[1:]
+    data4[:] = self.angles[1:]
     data5[:] = self.degr
     timevar[:] = dt
     # Add global attributes

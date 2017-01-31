@@ -10,7 +10,6 @@ import datetime
 import numpy
 from fm128_radar.write_fm128_radar import *
 
-
 class convert_to_ascii:
   def __init__(self, netcdf_file, outfile):
     self.outputfile = outfile
@@ -46,6 +45,7 @@ class convert_to_ascii:
       self.rf_err = ncfile.variables['reflectivity_err'][0,:]
     except KeyError:
       self.rf_err = 0.1 * self.rf
+      self.rf_err[self.rf_err<0] = 0
     # radial velocity
     try:
       self.rv = ncfile.variables['radial_velocity'][0,:]
