@@ -13,6 +13,7 @@ from netCDF4 import date2num
 import time
 import asteval
 import time
+from wradlib import georef
 
 
 def initialize_nans(shape):
@@ -52,16 +53,17 @@ class convert_to_netcdf:
     self.ZZ_sc1 = initialize_nans([1, len(self.angles), 360, 240])
     self.degr = numpy.arange(0,360, 1)
     self.r = numpy.arange(0, 240, 1)*1000  # convert from KM to M
-    dx = (numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[0] *
-          numpy.meshgrid(self.r, numpy.sin(numpy.deg2rad(self.degr)))[1])
-    self.lon = (self.LON_bilt + (180/numpy.pi)*(dx/self.r_earth)/numpy.cos(
-      self.LAT_bilt*numpy.pi/180))
-    dy = (numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[0] *
-          numpy.meshgrid(self.r, numpy.cos(numpy.deg2rad(self.degr)))[1])
-    self.lat = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
-    meshgr = (numpy.meshgrid(numpy.ones(len(self.degr)),
-                        numpy.sin(numpy.deg2rad(self.angles)), self.r))
-    self.z = self.height_bilt + (meshgr[0] * meshgr[1] * meshgr[2])
+    meshgr = (numpy.meshgrid(self.degr,  self.angles, self.r))
+    # calculate lon/lat/altitude using wradlib.georef
+    # which takes into account refraction
+    lla = georef.polar2lonlatalt_n(meshgr[2].reshape(-1),
+                                   meshgr[0].reshape(-1), meshgr[1].reshape(-1),
+                                   (self.LON_bilt, self.LAT_bilt,
+                                    self.height_bilt))
+    # return to correct shape
+    self.lon = lla[0].reshape((len(self.angles), len(self.degr), len(self.r)))
+    self.lat = lla[1].reshape((len(self.angles), len(self.degr), len(self.r)))
+    self.z = lla[2].reshape((len(self.angles), len(self.degr), len(self.r)))
     try:
       h5file = h5py.File(self.filename,'r')
     except Exception:
@@ -105,9 +107,9 @@ class convert_to_netcdf:
     data = ncfile.createVariable('reflectivity','f4',
                                  ('time','angle','degree','distance'),
                                  zlib=True, fill_value=-999)
-    data1 = ncfile.createVariable('latitude', 'f4', ('degree','distance'),
+    data1 = ncfile.createVariable('latitude', 'f4', ('angle', 'degree','distance'),
                                   zlib=True)
-    data2 = ncfile.createVariable('longitude', 'f4', ('degree','distance'),
+    data2 = ncfile.createVariable('longitude', 'f4', ('angle', 'degree','distance'),
                                   zlib=True)
     data3 = ncfile.createVariable('altitude', 'f4',
                                   ('angle','degree','distance'), zlib=True)
@@ -134,8 +136,8 @@ class convert_to_netcdf:
     data5.description = 'angle with respect to viewing direction'
     # write data
     data[:] = self.ZZ_sc1[0,1:,:]
-    data1[:] = self.lat
-    data2[:] = self.lon
+    data1[:] = self.lat[1:,:]
+    data2[:] = self.lon[1:,:]
     data3[:] = self.z[1:]
     data4[:] = self.angles[1:]
     data5[:] = self.degr

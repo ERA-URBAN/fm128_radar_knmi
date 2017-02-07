@@ -80,7 +80,8 @@ class convert_to_ascii:
     write_fm128_radar(self.radar_name, self.lat0, self.lon0, self.elv0,
                       self.time, self.latitude, self.longitude, self.altitude,
                       self.rf, self.rf_qc, self.rf_err,
-                      self.rv, self.rv_qc, self.rv_err, outfile=self.outputfile)
+                      self.rv, self.rv_qc, self.rv_err, outfile=self.outputfile,
+                      single=False)
 
 if __name__ == "__main__":
   read_netcdf_file()
