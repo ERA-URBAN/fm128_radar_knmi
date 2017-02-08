@@ -4,16 +4,16 @@ license:        APACHE 2.0
 author:         Ronald van Haren, NLeSC (r.vanharen@esciencecenter.nl)
                 Natalie Theeuwes
 '''
+from wradlib import georef
 import datetime
 import numpy
-import h5py
 import datetime
 from netCDF4 import Dataset
 from netCDF4 import date2num
 import time
 import asteval
 import time
-from wradlib import georef
+import h5py
 
 
 def initialize_nans(shape):
