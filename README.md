@@ -17,6 +17,8 @@ h5py
 netCDF4
 numpy
 python-dateutil
+wradlib
+gdal
 ```
 
 ## Usage
