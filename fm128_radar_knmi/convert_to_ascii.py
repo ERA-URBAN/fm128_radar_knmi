@@ -9,13 +9,18 @@ from netCDF4 import num2date
 import datetime
 import numpy
 from fm128_radar.write_fm128_radar import *
+from scipy.interpolate import griddata
 
 class convert_to_ascii:
-  def __init__(self, netcdf_file, outfile):
+  def __init__(self, netcdf_file, outfile, interpolate=False):
     self.outputfile = outfile
     self.check_file_exists(netcdf_file, 'r')
     self.read_netcdf(netcdf_file)
-    self.write_ascii()
+    if interpolate:
+      self.interpolate()
+      self.write_ascii(single=True)
+    else:
+      self.write_ascii(single=False)
 
   def check_file_exists(self, filepath, mode):
     ''' Check if a file exists and is accessible. '''
@@ -73,7 +78,36 @@ class convert_to_ascii:
     self.time = num2date(time_in[0], calendar=time_in.calendar,
                          units=time_in.units)
 
-  def write_ascii(self):
+  def interpolate(self):
+    '''
+    interpolate to regular grid using nearest neighbor interpolation
+    '''
+    # define source x,y,z
+    x=self.longitude
+    y=self.latitude
+    z=self.altitude
+    # source grid
+    src=numpy.vstack((x.ravel(), y.ravel(), z.ravel()))
+    # source values
+    vals = self.rf.ravel()
+    # original shape
+    orig_shape =  numpy.shape(self.rf)
+    # define target coordinates
+    xtrg = numpy.tile(self.longitude[0].ravel(), 13)
+    ytrg = numpy.tile(self.latitude[0].ravel(), 13)
+    ztrg = self.altitude.ravel()
+    trg = numpy.vstack((xtrg, ytrg, ztrg))
+    # interpolate
+    self.rf = griddata(src.T, vals, trg.T, method='nearest'
+                       ).reshape(orig_shape)
+    # use the single lon/lat value for the output we interpolated to
+    self.longitude = self.longitude[0]
+    self.latitude = self.latitude[0]
+    # set the error to 10%
+    self.rf_err = 0.1 * self.rf
+    self.rf_err[self.rf_err<0] = 0
+
+  def write_ascii(self, single=False):
     '''
     Write data to fm128_radar ascii file
     '''
@@ -81,7 +115,7 @@ class convert_to_ascii:
                       self.time, self.latitude, self.longitude, self.altitude,
                       self.rf, self.rf_qc, self.rf_err,
                       self.rv, self.rv_qc, self.rv_err, outfile=self.outputfile,
-                      single=False)
+                      single=single)
 
 if __name__ == "__main__":
   read_netcdf_file()

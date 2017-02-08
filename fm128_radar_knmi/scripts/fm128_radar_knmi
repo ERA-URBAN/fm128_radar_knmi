@@ -35,7 +35,9 @@ def cli_parser():
                env_var='TMP_DIR', required=False)
     parser.add('--pdry', default=100, type=int,
                help='approximate percentage of dry measurements to use')
-    parser.add('--remove_intermediate', default=False, type=bool,
+    parser.add('--interpolate', default=False, action='store_true',
+               help='Interpolate ascii files to grid')
+    parser.add('--remove_intermediate', default=False, action='store_true',
                help='Remove intermediate files')
     parser.add('datetime', metavar='datetime', type=str,
                help='Datetime string "%%Y%%m%%d%%H%%M"')
@@ -55,12 +57,13 @@ if __name__ == "__main__":
                                     os.path.expanduser(results.TMP_DIR), dt)
     nc_file = convert_to_netcdf(h5_file.outputfile, dt, results.pdry,
                                 outfile=os.path.join(
-                                  os.path.expanduser(results.TMP_DIR), 'fm128_radar_' +
+                                  os.path.expanduser(results.TMP_DIR),
+                                  'fm128_radar_' +
                                   datetime.datetime.strftime(dt, '%Y%m%d%H%M')
                                   + '.nc'))
     ascii_name = os.path.join(os.path.expanduser(results.OUTPUT_DIR),
                               'ob.radar')
-    convert_to_ascii(nc_file.outfile, ascii_name)
+    convert_to_ascii(nc_file.outfile, ascii_name, results.interpolate)
     if results.remove_intermediate:
       # remove intermediate files
       [os.remove(fl) for fl in [h5_file.outputfile, nc_file.outfile]]
