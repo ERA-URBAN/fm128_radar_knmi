@@ -45,25 +45,27 @@ class convert_to_netcdf:
     self.scans = ['scan1', 'scan2', 'scan3', 'scan4', 'scan5', 'scan6',
                   'scan7', 'scan8', 'scan9', 'scan10', 'scan11', 'scan12',
                   'scan13', 'scan14']
+    self.r_points = 240
+    self.az_points = 360
 
   def calculate_reflectivity(self):
     '''
     Calculate reflectivity for each point
     '''
-    self.ZZ_sc1 = initialize_nans([1, len(self.angles), 360, 240])
-    self.degr = numpy.arange(0,360, 1)
-    self.r = numpy.arange(0, 240, 1)*1000  # convert from KM to M
-    meshgr = (numpy.meshgrid(self.degr,  self.angles, self.r))
-    # calculate lon/lat/altitude using wradlib.georef
-    # which takes into account refraction
-    lla = georef.polar2lonlatalt_n(meshgr[2].reshape(-1),
-                                   meshgr[0].reshape(-1), meshgr[1].reshape(-1),
-                                   (self.LON_bilt, self.LAT_bilt,
-                                    self.height_bilt))
-    # return to correct shape
-    self.lon = lla[0].reshape((len(self.angles), len(self.degr), len(self.r)))
-    self.lat = lla[1].reshape((len(self.angles), len(self.degr), len(self.r)))
-    self.z = lla[2].reshape((len(self.angles), len(self.degr), len(self.r)))
+    self.ZZ_sc1 = initialize_nans([1, len(self.angles), self.az_points,
+                                   self.r_points])
+    self.degr = numpy.arange(0,self.az_points, 1)
+    # distance for small angles is 1km per point
+    # ['scan1', 'scan2', 'scan3', 'scan4']:
+    r = numpy.arange(0, self.r_points, 1)*1000  # convert from KM to M
+    lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[0:4], r)
+    # distance for large angles is 0.5km per point (scan5 and higher)
+    r = numpy.arange(0, self.r_points, 1)*500  # convert from KM to M
+    lon_l, lat_l, z_l = self.calculate_lon_lat_z(self.angles[4:], r)
+    # combine
+    self.lon = numpy.vstack((lon_s, lon_l))
+    self.lat = numpy.vstack((lat_s, lat_l))
+    self.z = numpy.vstack((z_s, z_l))
     try:
       h5file = h5py.File(self.filename,'r')
     except Exception:
@@ -87,15 +89,33 @@ class convert_to_netcdf:
                                     size=Z_sc1.shape).astype(numpy.bool)
         # Set only points in mask that are <0 to NaN (corresponds to dry cases)
         Z_sc1[(mask) & (Z_sc1<0)] = -999
-      for i in  range(0, len(self.r)):
+      for i in  range(0, len(r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
+
+  def calculate_lon_lat_z(self, angles, r):
+    '''
+    calculate lon,lat,alt
+    '''
+    meshgr = (numpy.meshgrid(self.degr,  angles, r))
+    # calculate lon/lat/altitude using wradlib.georef
+    # which takes into account refraction
+    lla = georef.polar2lonlatalt_n(meshgr[2].reshape(-1),
+                                   meshgr[0].reshape(-1), meshgr[1].reshape(-1),
+                                   (self.LON_bilt, self.LAT_bilt,
+                                    self.height_bilt))
+    # return to correct shape
+    lon = lla[0].reshape((len(angles), len(self.degr), len(r)))
+    lat = lla[1].reshape((len(angles), len(self.degr), len(r)))
+    z = lla[2].reshape((len(angles), len(self.degr), len(r)))
+    return lon, lat, z
 
   def create_netcdf(self):
     '''
     Write netcdf output file
     '''
-    ntime = 1; nangles = len(self.scans); ndegr = len(self.degr); ndist = len(self.r)
+    ntime = 1; nangles = len(self.scans); ndegr = len(self.degr);
+    ndist = self.r_points
     # open output file
     ncfile = Dataset(self.outfile, 'w')
     # create dimensions
