@@ -87,18 +87,18 @@ class convert_to_ascii:
     y=self.latitude
     z=self.altitude
     # source grid
-    src=numpy.vstack((x.ravel(), y.ravel(), z.ravel()))
+    src=numpy.vstack((x.reshape(-1), y.reshape(-1), z.reshape(-1)))
     # source values
-    vals = self.rf.ravel()
+    vals = self.rf.reshape(-1)
     # original shape
     orig_shape =  numpy.shape(self.rf)
     # define target coordinates
-    xtrg = numpy.tile(self.longitude[0].ravel(), 13)
-    ytrg = numpy.tile(self.latitude[0].ravel(), 13)
-    ztrg = self.altitude.ravel()
+    xtrg = numpy.tile(self.longitude[0,:].reshape(-1), 13)
+    ytrg = numpy.tile(self.latitude[0,:].reshape(-1), 13)
+    ztrg = self.altitude[:,:].reshape(-1)
     trg = numpy.vstack((xtrg, ytrg, ztrg))
     # interpolate
-    self.rf = griddata(src.T, vals, trg.T, method='nearest'
+    self.rf = griddata(src.T, vals, trg.T, method='nearest', rescale=True
                        ).reshape(orig_shape)
     # use the single lon/lat value for the output we interpolated to
     self.longitude = self.longitude[0]

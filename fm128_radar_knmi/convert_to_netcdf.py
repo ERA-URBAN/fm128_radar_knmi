@@ -57,10 +57,10 @@ class convert_to_netcdf:
     self.degr = numpy.arange(0, self.az_points, 1)
     # distance for small angles is 1km per point
     # ['scan1', 'scan2', 'scan3', 'scan4', 'scan5']:
-    r = numpy.arange(0, self.r_points, 1)*1000  # convert from KM to M
+    r = numpy.arange(1, self.r_points+1, 1)*1000  # convert from KM to M
     lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[0:5], r)
     # distance for large angles is 0.5km per point (scan6 and higher)
-    r = numpy.arange(0, self.r_points, 1)*500  # convert from KM to M
+    r = numpy.arange(1, self.r_points+1, 1)*500  # convert from KM to M
     lon_l, lat_l, z_l = self.calculate_lon_lat_z(self.angles[5:], r)
     # combine
     self.lon = numpy.vstack((lon_s, lon_l))
@@ -90,7 +90,7 @@ class convert_to_netcdf:
         # Set only points in mask that are <0 to NaN (corresponds to dry cases)
         #Z_sc1[(mask) & (Z_sc1<0)] = -999
       for i in  range(0, len(r)):
-        for j in self.degr:
+        for j in range(0, len(self.degr)):
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
 
   def calculate_lon_lat_z(self, angles, r):
