@@ -54,14 +54,14 @@ class convert_to_netcdf:
     '''
     self.ZZ_sc1 = initialize_nans([1, len(self.angles), self.az_points,
                                    self.r_points])
-    self.degr = numpy.arange(0,self.az_points, 1)
+    self.degr = numpy.arange(0, self.az_points, 1)
     # distance for small angles is 1km per point
-    # ['scan1', 'scan2', 'scan3', 'scan4']:
+    # ['scan1', 'scan2', 'scan3', 'scan4', 'scan5']:
     r = numpy.arange(0, self.r_points, 1)*1000  # convert from KM to M
-    lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[0:4], r)
-    # distance for large angles is 0.5km per point (scan5 and higher)
+    lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[0:5], r)
+    # distance for large angles is 0.5km per point (scan6 and higher)
     r = numpy.arange(0, self.r_points, 1)*500  # convert from KM to M
-    lon_l, lat_l, z_l = self.calculate_lon_lat_z(self.angles[4:], r)
+    lon_l, lat_l, z_l = self.calculate_lon_lat_z(self.angles[5:], r)
     # combine
     self.lon = numpy.vstack((lon_s, lon_l))
     self.lat = numpy.vstack((lat_s, lat_l))
@@ -70,7 +70,7 @@ class convert_to_netcdf:
       h5file = h5py.File(self.filename,'r')
     except Exception:
       # TODO: add meaningfull exception handling
-      import pdb; pdb.set_trace()
+      raise
     for x in range(len(self.scans)):
       scan1 = h5file.get(self.scans[x])
       PV = numpy.array(scan1.get('scan_Z_data'))
@@ -85,10 +85,10 @@ class convert_to_netcdf:
           max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
         else:
           max_int = 1
-        mask = numpy.random.randint(0, max_int,
-                                    size=Z_sc1.shape).astype(numpy.bool)
+        #mask = numpy.random.randint(0, max_int,
+        #                            size=Z_sc1.shape).astype(numpy.bool)
         # Set only points in mask that are <0 to NaN (corresponds to dry cases)
-        Z_sc1[(mask) & (Z_sc1<0)] = -999
+        #Z_sc1[(mask) & (Z_sc1<0)] = -999
       for i in  range(0, len(r)):
         for j in self.degr:
           self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
