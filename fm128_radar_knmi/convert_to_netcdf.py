@@ -54,18 +54,24 @@ class convert_to_netcdf:
     '''
     self.ZZ_sc1 = initialize_nans([1, len(self.angles), self.az_points,
                                    self.r_points])
-    self.degr = numpy.arange(0, self.az_points, 1)
-    # distance for small angles is 1km per point
-    # ['scan1', 'scan2', 'scan3', 'scan4', 'scan5']:
-    r = numpy.arange(1, self.r_points+1, 1)*1000  # convert from KM to M
-    lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[0:5], r)
-    # distance for large angles is 0.5km per point (scan6 and higher)
-    r = numpy.arange(1, self.r_points+1, 1)*500  # convert from KM to M
-    lon_l, lat_l, z_l = self.calculate_lon_lat_z(self.angles[5:], r)
-    # combine
-    self.lon = numpy.vstack((lon_s, lon_l))
-    self.lat = numpy.vstack((lat_s, lat_l))
-    self.z = numpy.vstack((z_s, z_l))
+    self.degr = numpy.arange(0, self.az_points, 1) + 0.5
+    for pp in range(0, len(self.angles)):
+      print((numpy.cos(numpy.deg2rad(self.angles[pp]))**5))
+      if pp<=4:
+        # distance for small angles is 1km per point
+        r = (numpy.arange(0, self.r_points, 1)+0.5)*1000
+      else:
+      # distance for large angles is 0.5km per point (scan6 and higher)
+        r = (numpy.arange(0, self.r_points, 1)+0.5)*500
+      lon_s, lat_s, z_s = self.calculate_lon_lat_z(self.angles[pp], r)
+      try:
+        self.lon = numpy.vstack((self.lon, lon_s))
+        self.lat = numpy.vstack((self.lat, lat_s))
+        self.z = numpy.vstack((self.z, z_s))
+      except AttributeError:
+        self.lon = lon_s
+        self.lat = lat_s
+        self.z = z_s
     try:
       h5file = h5py.File(self.filename,'r')
     except Exception:
@@ -73,6 +79,7 @@ class convert_to_netcdf:
       raise
     for x in range(len(self.scans)):
       scan1 = h5file.get(self.scans[x])
+      #scan1.attrs['scan_range_bin'][0]
       PV = numpy.array(scan1.get('scan_Z_data'))
       cal_sc1 = scan1.get('calibration')
       str = numpy.array_str(cal_sc1.attrs.get(
@@ -89,9 +96,12 @@ class convert_to_netcdf:
         #                            size=Z_sc1.shape).astype(numpy.bool)
         # Set only points in mask that are <0 to NaN (corresponds to dry cases)
         #Z_sc1[(mask) & (Z_sc1<0)] = -999
-      for i in  range(0, len(r)):
-        for j in range(0, len(self.degr)):
-          self.ZZ_sc1[0, x, j, i] = Z_sc1[j,i]
+      try:
+        ZZ_sc1 = numpy.vstack((ZZ_sc1, Z_sc1[numpy.newaxis, 0:360, 0:240]))
+      except UnboundLocalError:
+        ZZ_sc1 = Z_sc1[numpy.newaxis, 0:360, 0:240]
+    # add time axis
+    self.ZZ_sc1 = ZZ_sc1[numpy.newaxis, :]
 
   def calculate_lon_lat_z(self, angles, r):
     '''
@@ -105,10 +115,27 @@ class convert_to_netcdf:
                                    (self.LON_bilt, self.LAT_bilt,
                                     self.height_bilt))
     # return to correct shape
-    lon = lla[0].reshape((len(angles), len(self.degr), len(r)))
-    lat = lla[1].reshape((len(angles), len(self.degr), len(r)))
-    z = lla[2].reshape((len(angles), len(self.degr), len(r)))
+    lon = lla[0].reshape((1, len(self.degr), len(r)))
+    lat = lla[1].reshape((1, len(self.degr), len(r)))
+    z = lla[2].reshape((1, len(self.degr), len(r)))
     return lon, lat, z
+
+  def calculate_lon_lat_z_alt(self, angles, r):
+    '''
+    alternative implementation of calculate_lon_lat_z
+    does not take into accound refraction
+    '''
+    dx = (numpy.meshgrid(r, numpy.sin(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(r, numpy.sin(numpy.deg2rad(self.degr)))[1])
+    lon = (self.LON_bilt + (180/numpy.pi)*(dx/self.r_earth)/numpy.cos(
+      self.LAT_bilt*numpy.pi/180))
+    dy = (numpy.meshgrid(r, numpy.cos(numpy.deg2rad(self.degr)))[0] *
+          numpy.meshgrid(r, numpy.cos(numpy.deg2rad(self.degr)))[1])
+    lat = self.LAT_bilt + (180/numpy.pi)*(dy/self.r_earth)
+    meshgr = (numpy.meshgrid(numpy.ones(len(self.degr)),
+                        numpy.sin(numpy.deg2rad(angles)), r))
+    z = self.height_bilt + (meshgr[0] * meshgr[1] * meshgr[2])
+    return lon[numpy.newaxis,:], lat[numpy.newaxis,:], z
 
   def create_netcdf(self):
     '''
@@ -158,7 +185,7 @@ class convert_to_netcdf:
     data[:] = self.ZZ_sc1[0,1:,:]
     data1[:] = self.lat[1:,:]
     data2[:] = self.lon[1:,:]
-    data3[:] = self.z[1:]
+    data3[:] = self.z[1:,:]
     data4[:] = self.angles[1:]
     data5[:] = self.degr
     timevar[:] = dt
