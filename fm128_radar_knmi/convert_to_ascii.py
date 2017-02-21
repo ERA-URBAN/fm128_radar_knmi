@@ -12,14 +12,17 @@ from fm128_radar.write_fm128_radar import *
 from scipy.interpolate import griddata
 
 class convert_to_ascii:
-  def __init__(self, netcdf_file, outfile, interpolate=False):
+  def __init__(self, netcdf_file, outfile, pdry, interpolate=False):
     self.outputfile = outfile
+    self.pdry = pdry
     self.check_file_exists(netcdf_file, 'r')
     self.read_netcdf(netcdf_file)
     if interpolate:
       self.interpolate()
+      self.set_mask()
       self.write_ascii(single=True)
     else:
+      self.set_mask()
       self.write_ascii(single=False)
 
   def check_file_exists(self, filepath, mode):
@@ -104,6 +107,32 @@ class convert_to_ascii:
     self.latitude = self.latitude[0]
     # set the error to 0.5dBz
     self.rf_err = 0.5 * numpy.ones(numpy.shape(self.rf))
+
+  def set_mask(self):
+    '''
+    set mask
+    '''
+    # create random mask with approx self.pdry% of data points
+    # mask for altitudes above 10 km
+    if self.pdry:
+      if self.pdry<=100:
+        # correction factor on self.pdry to take into account dry points
+        # max should not be larger than 100
+        import pdb; pdb.set_trace()
+        self.pdry = min(100, 
+                        len(self.rf.flatten())/float(
+                          numpy.sum(self.rf<0)) * self.pdry)
+        max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
+      else:
+        max_int = 1
+    # mask dry points
+    mask = numpy.random.randint(0, max_int,
+                                size=self.rf.shape).astype(numpy.bool)
+    mask_dry = (mask) & (self.rf<0)
+    # mask altitude
+    mask_altitude = self.altitude > 10000
+    # combine masks and apply to reflectivity
+    self.rf = numpy.ma.masked_where((mask_dry | mask_altitude), self.rf)
 
   def write_ascii(self, single=False):
     '''

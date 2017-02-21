@@ -56,7 +56,6 @@ class convert_to_netcdf:
                                    self.r_points])
     self.degr = numpy.arange(0, self.az_points, 1) + 0.5
     for pp in range(0, len(self.angles)):
-      print((numpy.cos(numpy.deg2rad(self.angles[pp]))**5))
       if pp<=4:
         # distance for small angles is 1km per point
         r = (numpy.arange(0, self.r_points, 1)+0.5)*1000
@@ -86,16 +85,6 @@ class convert_to_netcdf:
         'calibration_Z_formulas')).strip("['']").split('=')
       # evaluate expression in a "safe" manner
       Z_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
-      # create random mask with approx self.pdry% of data points
-      if self.pdry:
-        if self.pdry<=100:
-          max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
-        else:
-          max_int = 1
-        #mask = numpy.random.randint(0, max_int,
-        #                            size=Z_sc1.shape).astype(numpy.bool)
-        # Set only points in mask that are <0 to NaN (corresponds to dry cases)
-        #Z_sc1[(mask) & (Z_sc1<0)] = -999
       try:
         ZZ_sc1 = numpy.vstack((ZZ_sc1, Z_sc1[numpy.newaxis, 0:360, 0:240]))
       except UnboundLocalError:

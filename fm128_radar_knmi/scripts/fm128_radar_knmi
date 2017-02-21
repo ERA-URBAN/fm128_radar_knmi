@@ -63,7 +63,8 @@ if __name__ == "__main__":
                                   + '.nc'))
     ascii_name = os.path.join(os.path.expanduser(results.OUTPUT_DIR),
                               'ob.radar')
-    convert_to_ascii(nc_file.outfile, ascii_name, results.interpolate)
+    convert_to_ascii(nc_file.outfile, ascii_name, results.pdry,
+                     results.interpolate)
     if results.remove_intermediate:
       # remove intermediate files
       [os.remove(fl) for fl in [h5_file.outputfile, nc_file.outfile]]
