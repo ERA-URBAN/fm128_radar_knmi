@@ -118,8 +118,7 @@ class convert_to_ascii:
       if self.pdry<=100:
         # correction factor on self.pdry to take into account dry points
         # max should not be larger than 100
-        import pdb; pdb.set_trace()
-        self.pdry = min(100, 
+        self.pdry = min(100,
                         len(self.rf.flatten())/float(
                           numpy.sum(self.rf<0)) * self.pdry)
         max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
