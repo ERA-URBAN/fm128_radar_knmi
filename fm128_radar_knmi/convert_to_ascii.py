@@ -49,8 +49,7 @@ class convert_to_ascii:
     try:
       self.rf_err = ncfile.variables['reflectivity_err'][0,:]
     except KeyError:
-      self.rf_err = 0.1 * self.rf
-      self.rf_err[self.rf_err<0] = 0
+      self.rf_err = 0.5 * numpy.ones(numpy.shape(self.rf))
     # radial velocity
     try:
       self.rv = ncfile.variables['radial_velocity'][0,:]
@@ -103,9 +102,8 @@ class convert_to_ascii:
     # use the single lon/lat value for the output we interpolated to
     self.longitude = self.longitude[0]
     self.latitude = self.latitude[0]
-    # set the error to 10%
-    self.rf_err = 0.1 * self.rf
-    self.rf_err[self.rf_err<0] = 0
+    # set the error to 0.5dBz
+    self.rf_err = 0.5 * numpy.ones(numpy.shape(self.rf))
 
   def write_ascii(self, single=False):
     '''
