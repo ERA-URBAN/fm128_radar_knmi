@@ -204,7 +204,6 @@ class convert_to_ascii:
     mask = numpy.vstack([mask_xy[numpy.newaxis,:]] * numpy.shape(self.rf)[0])
     mask_dry = (mask) & (self.rf<0)
     # mask altitude
-    import pdb; pdb.set_trace()
     mask_altitude = self.altitude > 10000
     # mask NaN
     mask_nan = numpy.isnan(self.rf)
