@@ -8,3 +8,4 @@ numpy
 python-dateutil
 wradlib
 gdal
+geopy

@@ -35,8 +35,9 @@ def cli_parser():
                env_var='TMP_DIR', required=False)
     parser.add('--pdry', default=100, type=int,
                help='approximate percentage of dry measurements to use')
-    parser.add('--interpolate', default=False, action='store_true',
-               help='Interpolate ascii files to grid')
+    parser.add('--interpolate', default=False,
+               help='Interpolate ascii files to grid in wrfinput file',
+               type=configargparse.FileType('rb'))
     parser.add('--remove_intermediate', default=False, action='store_true',
                help='Remove intermediate files')
     parser.add('datetime', metavar='datetime', type=str,
@@ -47,6 +48,13 @@ def cli_parser():
 
 if __name__ == "__main__":
     results = cli_parser()
+    if results.interpolate:  # get filename containing XLAT/XLONG
+      # get filename
+      interpolate_filename = results.interpolate.name
+      # close file
+      results.interpolate.close()
+    else:
+      interpolate_filename = False
     if not results.TMP_DIR:
       # default TMP_DIR to DOWNLOAD_DIR
       results.TMP_DIR = os.path.expanduser(results.DOWNLOAD_DIR)
@@ -64,7 +72,7 @@ if __name__ == "__main__":
     ascii_name = os.path.join(os.path.expanduser(results.OUTPUT_DIR),
                               'ob.radar')
     convert_to_ascii(nc_file.outfile, ascii_name, results.pdry,
-                     results.interpolate)
+                     interpolate_filename)
     if results.remove_intermediate:
       # remove intermediate files
       [os.remove(fl) for fl in [h5_file.outputfile, nc_file.outfile]]
