@@ -105,6 +105,7 @@ class convert_to_ascii:
     # hardcode position of de Bilt for now
     LAT_bilt = 52.10168
     LON_bilt = 5.17834
+    height_bilt = 44.
     # calculate horizontal distance for each xlat, xlong to de bilt
     # define source x,y,z
     x=self.longitude
@@ -137,7 +138,7 @@ class convert_to_ascii:
                                    numpy.deg2rad(theta)))*ke*re*
                                  numpy.sin(numpy.deg2rad(theta))
                                  ) - ke*re).reshape(numpy.shape(xlat)) for
-                                 theta in angles])
+                                 theta in angles]) + height_bilt
     ztrg = self.altitude[:,:].reshape(-1)
     trg = numpy.vstack((xtrg, ytrg, ztrg))
     # interpolate (using nearest neighbor)
@@ -202,7 +203,8 @@ class convert_to_ascii:
     mask_xy = numpy.random.randint(0, max_int,size=self.rf[0,:].shape
                                    ).astype(numpy.bool)
     mask = numpy.vstack([mask_xy[numpy.newaxis,:]] * numpy.shape(self.rf)[0])
-    mask_dry = (mask) & (self.rf<0)
+    self.rf[self.rf<-30] = -30
+    mask_dry = (mask) & (self.rf<=7)
     # mask altitude
     mask_altitude = self.altitude > 10000
     # mask NaN
