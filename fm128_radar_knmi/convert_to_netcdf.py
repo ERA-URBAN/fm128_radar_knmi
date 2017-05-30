@@ -91,6 +91,36 @@ class convert_to_netcdf:
         ZZ_sc1 = Z_sc1[numpy.newaxis, 0:360, 0:240]
     # add time axis
     self.ZZ_sc1 = ZZ_sc1[numpy.newaxis, :]
+    for x in range(len(self.scans)):
+      scan1 = h5file.get(self.scans[x])
+      #scan1.attrs['scan_range_bin'][0]
+      PV = numpy.array(scan1.get('scan_V_data'))
+      cal_sc1 = scan1.get('calibration')
+      str = numpy.array_str(cal_sc1.attrs.get(
+        'calibration_V_formulas')).strip("['']").split('=')
+      # evaluate expression in a "safe" manner
+      V_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
+      try:
+        VV_sc1 = numpy.vstack((VV_sc1, V_sc1[numpy.newaxis, 0:360, 0:240]))
+      except UnboundLocalError:
+        VV_sc1 = V_sc1[numpy.newaxis, 0:360, 0:240]
+    # add time axis
+    self.VV_sc1 = VV_sc1[numpy.newaxis, :]
+    for x in range(len(self.scans)):
+      scan1 = h5file.get(self.scans[x])
+      #scan1.attrs['scan_range_bin'][0]
+      PV = numpy.array(scan1.get('scan_W_data'))
+      cal_sc1 = scan1.get('calibration')
+      str = numpy.array_str(cal_sc1.attrs.get(
+        'calibration_W_formulas')).strip("['']").split('=')
+      # evaluate expression in a "safe" manner
+      W_sc1 = asteval.Interpreter(symtable={"PV": PV}).eval(str[1])
+      try:
+        WW_sc1 = numpy.vstack((WW_sc1, W_sc1[numpy.newaxis, 0:360, 0:240]))
+      except UnboundLocalError:
+        WW_sc1 = V_sc1[numpy.newaxis, 0:360, 0:240]
+    # add time axis
+    self.WW_sc1 = WW_sc1[numpy.newaxis, :]
 
   def calculate_lon_lat_z(self, angles, r):
     '''
@@ -151,9 +181,15 @@ class convert_to_netcdf:
                                   ('angle','degree','distance'), zlib=True)
     data4 = ncfile.createVariable('angle', 'f4', ('angle',), zlib=True)
     data5 = ncfile.createVariable('degree', 'f4', ('degree',), zlib=True)
+    data6 = ncfile.createVariable('radial_velocity','f4',
+                                 ('time','angle','degree','distance'),
+                                 zlib=True, fill_value=-999)
+    data7 = ncfile.createVariable('radial_velocity_err','f4',
+                                 ('time','angle','degree','distance'),
+                                 zlib=True, fill_value=-999)
     timevar = ncfile.createVariable('time', 'f4', ('time',), zlib=True)
     # time axis UTC
-    dt = date2num(self.dt, calendar='gregorian',
+    dt = date2num(self.dt.replace(tzinfo=None), calendar='gregorian',
                   units='minutes since 2010-01-01 00:00:00')
     # define attributes
     timevar.units = 'minutes since 2010-01-01 00:00:00'
@@ -166,10 +202,14 @@ class convert_to_netcdf:
     data1.standard_name = 'longitude'
     data2.units = 'degree_north'
     data2.standard_name = 'latitude'
-    data4.unites = 'degree'
+    data4.units = 'degree'
     data4.description = 'angle with respect to the horizontal'
-    data5.unites = 'degree'
+    data5.units = 'degree'
     data5.description = 'angle with respect to viewing direction'
+    data6.units = 'm/s'
+    data6.description = 'radial velocity'
+    data7.units = 'm/s'
+    data7.description = 'variance of radial velocity'
     # write data
     data[:] = self.ZZ_sc1[0,1:,:]
     data1[:] = self.lat[1:,:]
@@ -177,6 +217,8 @@ class convert_to_netcdf:
     data3[:] = self.z[1:,:]
     data4[:] = self.angles[1:]
     data5[:] = self.degr
+    data6[:] = self.VV_sc1[0,1:,:]
+    data7[:] = self.WW_sc1[0,1:,:]
     timevar[:] = dt
     # Add global attributes
     ncfile.description = 'KNMI radar data converted with fm128_radar_knmi'

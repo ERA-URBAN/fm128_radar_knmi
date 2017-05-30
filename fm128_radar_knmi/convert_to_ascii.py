@@ -62,7 +62,7 @@ class convert_to_ascii:
     try:
       self.rv_qc = ncfile.variables['radial_velocity_qc'][0,:]
     except KeyError:
-      self.rv_qc = -88 * numpy.ones(numpy.shape(self.rf))
+      self.rv_qc = numpy.zeros(numpy.shape(self.rf))
     try:
       self.rv_err = ncfile.variables['radial_velocity_err'][0,:]
     except KeyError:
@@ -115,8 +115,12 @@ class convert_to_ascii:
     src=numpy.vstack((x.reshape(-1), y.reshape(-1), z.reshape(-1)))
     # source values, set last measurement in range to nan so we don't
     # extrapolate when using nearest neighbor
-    self.rf[:,:,-1] = numpy.nan
-    vals = self.rf.reshape(-1)
+    self.rf[:,:,-1] = numpy.nan  # reflectivity
+    vals_rf = self.rf.reshape(-1)
+    self.rv[:,:,-1] = numpy.nan  # radial velocity
+    vals_rv = self.rv.reshape(-1)
+    self.rv_err[:,:,-1] = numpy.nan  # variance radial velocity
+    vals_rv_err = self.rv_err.reshape(-1)
     # original shape
     orig_shape =  numpy.shape(self.rf)
     # define target coordinates
@@ -143,7 +147,11 @@ class convert_to_ascii:
     trg = numpy.vstack((xtrg, ytrg, ztrg))
     # interpolate (using nearest neighbor)
     # scipy.interpolate.griddata is faster than wradlib.ipol
-    self.rf = griddata(src.T, vals, trg.T, method='nearest', rescale=True
+    self.rf = griddata(src.T, vals_rf, trg.T, method='nearest', rescale=True
+                       ).reshape(numpy.shape(self.altitude))
+    self.rv = griddata(src.T, vals_rv, trg.T, method='nearest', rescale=True
+                       ).reshape(numpy.shape(self.altitude))
+    self.rv_err = griddata(src.T, vals_rv_err, trg.T, method='nearest', rescale=True
                        ).reshape(numpy.shape(self.altitude))
     # use the single lon/lat value for the output we interpolated to
     self.longitude = xlong
@@ -151,9 +159,7 @@ class convert_to_ascii:
     # set the error to 2.0dBz
     self.rf_err = 2.0 * numpy.ones(numpy.shape(self.rf))
     self.rf_qc = numpy.zeros(numpy.shape(self.rf))
-    self.rv = -88 * numpy.ones(numpy.shape(self.rf))
-    self.rv_qc = -88 * numpy.ones(numpy.shape(self.rf))
-    self.rv_err = -888888 * numpy.ones(numpy.shape(self.rf))
+    self.rv_qc = numpy.zeros(numpy.shape(self.rf))
 
   def set_mask(self):
     '''
@@ -162,7 +168,7 @@ class convert_to_ascii:
     # create random mask with approx self.pdry% of data points
     # mask for altitudes above 10 km
     if self.pdry:
-      if self.pdry<=100:
+      if (self.pdry<=100) and (self.pdry>0):
         # correction factor on self.pdry to take into account dry points
         # max should not be larger than 100
         self.pdry = min(100,
@@ -171,10 +177,19 @@ class convert_to_ascii:
         max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
       else:
         max_int = 1
+    else:
+      max_int = 1
     # mask dry points
     mask = numpy.random.randint(0, max_int,
                                 size=self.rf.shape).astype(numpy.bool)
-    mask_dry = (mask) & (self.rf<0)
+    self.rf[self.rf<-30] = -30
+    self.rv_err[self.rv<=-24] = -888888
+    self.rv_qc[self.rv<=-24] = -88
+    self.rv[self.rv<=-24] = -888888
+    if not self.pdry==0:
+      mask_dry = (mask) & (self.rf<0)
+    else:
+      mask_dry = (self.rf<0)
     # mask altitude
     mask_altitude = self.altitude > 10000
     # mask NaN
@@ -190,7 +205,7 @@ class convert_to_ascii:
     # create random mask with approx self.pdry% of data points
     # mask for altitudes above 10 km
     if self.pdry:
-      if self.pdry<=100:
+      if (self.pdry<=100) and (self.pdry>0):
         # correction factor on self.pdry to take into account dry points
         # max should not be larger than 100
         self.pdry = min(100,
@@ -199,12 +214,20 @@ class convert_to_ascii:
         max_int = numpy.int(numpy.round((1/(self.pdry/100.))))
       else:
         max_int = 1
+    else:
+      max_int =1
     # mask dry points
     mask_xy = numpy.random.randint(0, max_int,size=self.rf[0,:].shape
                                    ).astype(numpy.bool)
     mask = numpy.vstack([mask_xy[numpy.newaxis,:]] * numpy.shape(self.rf)[0])
     self.rf[self.rf<-30] = -30
-    mask_dry = (mask) & (self.rf<=7)
+    self.rv_err[self.rv<=-24] = -888888
+    self.rv_qc[self.rv<=-24] = -88
+    self.rv[self.rv<=-24] = -888888
+    if not self.pdry==0:
+      mask_dry = (mask) & (self.rf<=7)
+    else:
+      mask_dry = (self.rf<=7)
     # mask altitude
     mask_altitude = self.altitude > 10000
     # mask NaN
