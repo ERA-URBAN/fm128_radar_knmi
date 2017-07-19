@@ -22,9 +22,63 @@ class convert_to_ascii:
       self.interpolate(interpolate)
       self.set_mask_interpolate()
       self.write_ascii(single=True)
+      #self.plot_refl()
     else:
       self.set_mask()
       self.write_ascii(single=False)
+
+  def plot_refl(self):
+    from mpl_toolkits.basemap import Basemap, cm
+    import matplotlib.pyplot as plt
+    # plot
+    x1= numpy.min(self.longitude)
+    x2 = numpy.max(self.longitude)
+    y1 = numpy.min(self.latitude)
+    y2 = numpy.max(self.latitude)
+
+    for alt in range(0,len(self.altitude)):
+      fig=plt.figure()
+      map = Basemap(resolution='i',projection='merc',
+                    llcrnrlat=y1,urcrnrlat=y2,llcrnrlon=x1,urcrnrlon=x2,
+                    lat_ts=(x1+x2)/2)
+      map.drawcoastlines(linewidth=0.25)
+      map.drawcountries(linewidth=0.25)
+      map.drawmeridians(numpy.arange(0,360,30))
+      map.drawparallels(numpy.arange(-90,90,30))
+      x,y = map(self.longitude, self.latitude)
+      cs = map.pcolormesh(x,y, self.rf[alt,:],cmap=cm.s3pcpn_l, vmin=0, vmax=50)
+      cbar = map.colorbar(cs, spacing='proportional',location='right',pad="5%")
+      cbar.set_label('dBz')
+      plt.savefig('rf_' + str(alt) + '.png', bbox_inches='tight')
+      plt.close(fig)
+      fig=plt.figure()
+      map = Basemap(resolution='i',projection='merc',
+                    llcrnrlat=y1,urcrnrlat=y2,llcrnrlon=x1,urcrnrlon=x2,
+                    lat_ts=(x1+x2)/2)
+      map.drawcoastlines(linewidth=0.25)
+      map.drawcountries(linewidth=0.25)
+      map.drawmeridians(numpy.arange(0,360,30))
+      map.drawparallels(numpy.arange(-90,90,30))
+      x,y = map(self.longitude, self.latitude)
+      cs = map.pcolormesh(x,y, self.rv[alt,:],cmap=cm.s3pcpn_l, vmin=-20, vmax=20)
+      cbar = map.colorbar(cs, spacing='proportional',location='right',pad="5%")
+      cbar.set_label('m/s')
+      plt.savefig('rv_' + str(alt) + '.png', bbox_inches='tight')
+      plt.close(fig)
+      fig=plt.figure()
+      map = Basemap(resolution='i',projection='merc',
+                    llcrnrlat=y1,urcrnrlat=y2,llcrnrlon=x1,urcrnrlon=x2,
+                    lat_ts=(x1+x2)/2)
+      map.drawcoastlines(linewidth=0.25)
+      map.drawcountries(linewidth=0.25)
+      map.drawmeridians(numpy.arange(0,360,30))
+      map.drawparallels(numpy.arange(-90,90,30))
+      x,y = map(self.longitude, self.latitude)
+      cs = map.pcolormesh(x,y, self.altitude[alt,:],cmap=cm.s3pcpn_l, vmin=0, vmax=10000)
+      cbar = map.colorbar(cs, spacing='proportional',location='right',pad="5%")
+      cbar.set_label('m')
+      plt.savefig('height_' + str(alt) + '.png', bbox_inches='tight')
+      plt.close(fig)
 
   def check_file_exists(self, filepath, mode):
     ''' Check if a file exists and is accessible. '''
@@ -191,12 +245,14 @@ class convert_to_ascii:
     else:
       mask_dry = (self.rf<0)
     # mask altitude
-    mask_altitude = self.altitude > 10000
+    mask_altitude = self.altitude > 6000
     # mask NaN
     mask_nan = numpy.isnan(self.rf)
     # combine masks and apply to reflectivity
     self.rf = numpy.ma.masked_where((mask_dry | mask_altitude | mask_nan),
                                     self.rf)
+    self.rv = numpy.ma.masked_where((mask_dry | mask_altitude | mask_nan),
+                                    self.rv)
 
   def set_mask_interpolate(self):
     '''
@@ -229,12 +285,14 @@ class convert_to_ascii:
     else:
       mask_dry = (self.rf<=7)
     # mask altitude
-    mask_altitude = self.altitude > 10000
+    mask_altitude = self.altitude > 6000
     # mask NaN
     mask_nan = numpy.isnan(self.rf)
     # combine masks and apply to reflectivity
     self.rf = numpy.ma.masked_where((mask_dry | mask_altitude | mask_nan),
                                     self.rf)
+    self.rv = numpy.ma.masked_where((mask_dry | mask_altitude | mask_nan),
+                                    self.rv)
 
   def write_ascii(self, single=False):
     '''
